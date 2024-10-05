@@ -10,6 +10,7 @@ import useRunners from "../hooks/useRunners";
 import { Contract } from "ethers";
 import { Interface } from "ethers";
 import ABI from "../ABI/proposal.json";
+import useProposalAction from "../hooks/useProposalActions";
 
 const multicallAbi = [
     "function tryAggregate(bool requireSuccess, (address target, bytes callData)[] calls) returns ((bool success, bytes returnData)[] returnData)",
@@ -23,6 +24,7 @@ export const ProposalsContextProvider = ({ children }) => {
     const [proposals, setProposals] = useState([]);
     const readOnlyProposalContract = useContract(true);
     const { readOnlyProvider } = useRunners();
+    const { executeProposal } = useProposalAction();
 
     const fetchProposals = useCallback(async () => {
         if (!readOnlyProposalContract) return;
@@ -104,7 +106,35 @@ export const ProposalsContextProvider = ({ children }) => {
         []
     );
 
-    const votedHandler = useCallback((proposalId) => {
+    const fetchOneProposal = async(id) => {
+        try {
+            const res = await readOnlyProposalContract.proposals(id);
+            const decodedResults = itf.decodeFunctionResult("proposals", res);
+            
+            const data = {
+                id,
+                description: decodedResults.description,
+                amount: decodedResults.amount,
+                minRequiredVote: decodedResults.minVotesToPass,
+                voteCount: Number(decodedResults.voteCount),
+                deadline: decodedResults.votingDeadline,
+                executed: decodedResults.executed,
+            }
+
+            if(data.voteCount >= data.minRequiredVote && readOnlyProposalContract.block.timestamp > data.deadline) {
+                executeProposal(id);
+            }
+
+        } catch (error) {
+            const errorDecoder = ErrorDecoder.create();
+
+            const decodedError = await errorDecoder.decode(error);
+
+            console.log("decodedError: ", decodedError);
+        }
+    }
+
+    const votedHandler = useCallback((proposalId, id) => {
         console.log("voted: ", proposalId, " ", Math.random());
 
         setProposals((prev) =>

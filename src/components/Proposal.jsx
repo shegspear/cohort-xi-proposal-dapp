@@ -11,7 +11,7 @@ const Proposal = ({
     deadline,
     executed,
 }) => {
-    const { voteForProposal } = useProposalAction();
+    const { voteForProposal, fetchProposal } = useProposalAction();
     return (
         <Box className="bg-slate-400 rounded-md shadow-sm p-4 w-96">
             <Text className="text-2xl mb-4">Proposals</Text>

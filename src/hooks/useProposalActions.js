@@ -100,9 +100,42 @@ const useCreateProposal = () => {
         [contract]
     );
 
-    const executeProposal = useCallback(() => {}, []);
+    const fetchProposal = async(id) => {
+        try {
+            const tx = await contract.proposals(id);
+            await tx.wait();
 
-    return { createProposal, voteForProposal, executeProposal };
+            // console.log(tx.block.timestamp)
+
+            console.log("proposal ", tx)
+          
+        } catch (error) {
+            const errorDecoder = ErrorDecoder.create();
+            const decodeError = await errorDecoder.decode(error);
+            console.log("Proposal execution error ", decodeError)
+        }
+    }
+
+    const executeProposal = useCallback(
+        async(id) => {
+            try {
+                const tx = await contract.executeProposal(id);
+                const receipt = await tx.wait();
+                if(receipt.status === 1) {
+                    toast.success("Proposal execution successful !")
+                    return;
+                }
+                toast.error("Proposal execution failed !")
+            } catch (error) {
+                const errorDecoder = ErrorDecoder.create();
+                const decodeError = await errorDecoder.decode(error);
+                console.log("Proposal execution error ", decodeError)
+            }
+        }, 
+        [contract]
+    );
+
+    return { createProposal, voteForProposal, executeProposal, fetchProposal };
 };
 
 export default useCreateProposal;
